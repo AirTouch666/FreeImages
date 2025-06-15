@@ -24,9 +24,16 @@ class ClientConfigManager {
         if (response.ok) {
           const config = await response.json();
           this.config = config;
+          console.log('配置已从服务器加载');
+        } else {
+          const errorData = await response.json();
+          console.error('加载配置失败:', errorData);
+          throw new Error(errorData.error || '加载配置失败');
         }
       } catch (error) {
         console.error('加载配置失败:', error);
+        // 使用默认配置
+        this.config = { ...defaultConfig };
       }
       this.initialized = true;
     }
@@ -59,6 +66,8 @@ class ClientConfigManager {
    */
   public async updateConfig(newConfig: Partial<ConfigType>): Promise<void> {
     try {
+      console.log('正在更新配置:', JSON.stringify(newConfig));
+      
       // 发送到API
       const response = await fetch('/api/config', {
         method: 'POST',
@@ -66,14 +75,18 @@ class ClientConfigManager {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(newConfig),
+        credentials: 'include', // 包含cookie
       });
 
       if (response.ok) {
         // 更新本地配置
         const updatedConfig = await response.json();
         this.config = updatedConfig;
+        console.log('配置已成功更新');
       } else {
-        throw new Error('更新配置失败');
+        const errorData = await response.json();
+        console.error('更新配置失败:', errorData);
+        throw new Error(errorData.error || '更新配置失败');
       }
     } catch (error) {
       console.error('更新配置失败:', error);

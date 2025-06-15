@@ -15,26 +15,37 @@ export default function LoginForm() {
     configManager.init();
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
-    // 获取配置中的管理员密码
-    const config = configManager.getConfig();
-    const adminPassword = config.app.security.adminPassword;
+    try {
+      // 获取配置中的管理员密码
+      const config = configManager.getConfig();
+      const adminPassword = config.app.security.adminPassword;
 
-    // 验证密码
-    if (password === adminPassword) {
-      // 设置登录状态
-      localStorage.setItem('freeimages-auth', 'true');
-      // 跳转到管理页面
-      router.push('/admin/settings');
-    } else {
-      setError('密码错误');
+      // 验证密码
+      if (password === adminPassword) {
+        // 设置登录状态（同时在localStorage和cookie中设置）
+        localStorage.setItem('freeimages-auth', 'true');
+        
+        // 设置cookie，有效期24小时
+        const expiryDate = new Date();
+        expiryDate.setTime(expiryDate.getTime() + 24 * 60 * 60 * 1000);
+        document.cookie = `freeimages-auth=true; expires=${expiryDate.toUTCString()}; path=/; SameSite=Lax`;
+        
+        // 跳转到管理页面
+        router.push('/admin/settings');
+      } else {
+        setError('密码错误');
+      }
+    } catch (error) {
+      console.error('登录失败:', error);
+      setError('登录过程中发生错误');
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   return (

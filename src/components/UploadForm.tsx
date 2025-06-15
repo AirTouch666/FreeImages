@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import configManager from '@/config';
 import { UploadResponse } from '@/types';
@@ -9,8 +9,25 @@ export default function UploadForm() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isConfigLoaded, setIsConfigLoaded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropAreaRef = useRef<HTMLDivElement>(null);
+
+  // 初始化配置
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        await configManager.init();
+        setIsConfigLoaded(true);
+        console.log('配置已加载');
+      } catch (error) {
+        console.error('加载配置失败:', error);
+        toast.error('加载配置失败，请刷新页面重试');
+      }
+    };
+    
+    loadConfig();
+  }, []);
 
   // 处理文件选择
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -72,6 +89,11 @@ export default function UploadForm() {
 
   // 上传文件
   const uploadFiles = async (files: File[]) => {
+    if (!isConfigLoaded) {
+      toast.error('配置尚未加载完成，请稍后再试');
+      return;
+    }
+
     if (files.length === 0) {
       toast.error('请选择一个文件');
       return;
@@ -90,50 +112,28 @@ export default function UploadForm() {
       // 只上传第一个文件（可以扩展为多文件上传）
       const file = files[0];
       
-      // 获取配置
-      const config = configManager.getConfig();
-      const { cloudflare } = config.storage;
-      const uploadPath = config.storage.upload.path;
-      
-      // 第一步：获取预签名URL
+      // 创建FormData对象，直接上传文件到服务器
       const formData = new FormData();
       formData.append('file', file);
-
-      const response = await fetch('/api/upload', {
+      
+      console.log('开始直接上传文件:', file.name, '类型:', file.type, '大小:', file.size);
+      
+      // 发送直接上传请求到服务器端点
+      const response = await fetch('/api/upload/direct', {
         method: 'POST',
         body: formData,
-        headers: {
-          'x-account-id': cloudflare.accountId,
-          'x-access-key-id': cloudflare.accessKeyId,
-          'x-secret-access-key': cloudflare.secretAccessKey,
-          'x-bucket-name': cloudflare.bucketName,
-          'x-upload-path': uploadPath,
-          'x-public-domain': cloudflare.publicDomain,
-        },
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`上传失败: ${response.status} ${response.statusText} - ${errorText}`);
+      }
 
       const result = await response.json();
-
+      
       if (!result.success) {
-        throw new Error(result.error || '获取上传URL失败');
+        throw new Error(result.error || '上传失败');
       }
-
-      console.log('获取预签名URL成功:', result.signedUrl);
-
-      // 第二步：使用预签名URL直接上传到R2
-      const uploadResponse = await fetch(result.signedUrl, {
-        method: 'PUT',
-        body: file,
-        headers: {
-          'Content-Type': result.contentType,
-        },
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error(`上传失败: ${uploadResponse.statusText}`);
-      }
-
-      console.log('上传到R2成功');
 
       // 上传成功
       setUploadedUrl(result.publicUrl);
