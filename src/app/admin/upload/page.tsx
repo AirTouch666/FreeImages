@@ -5,11 +5,12 @@ import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import AdminLayout from '@/components/AdminLayout';
 import AuthGuard from '@/components/AuthGuard';
+import configManager from '@/config';
 
 interface UploadSettings {
-  uploadPath: string;
-  maxFileSize: number;
-  allowedFileTypes: string;
+  path: string;
+  maxSize: number;
+  allowedTypes: string;
 }
 
 export default function UploadSettingsPage() {
@@ -19,17 +20,19 @@ export default function UploadSettingsPage() {
   // 加载保存的设置
   useEffect(() => {
     try {
-      const savedSettings = localStorage.getItem('freeimages-upload-settings');
-      if (savedSettings) {
-        reset(JSON.parse(savedSettings));
-      } else {
-        // 默认值
-        reset({
-          uploadPath: 'images/',
-          maxFileSize: 10,
-          allowedFileTypes: 'jpg,jpeg,png,gif,webp'
-        });
-      }
+      const config = configManager.getConfig();
+      const { upload } = config.storage;
+      
+      // 将数组类型转换为字符串
+      const allowedTypesString = upload.allowedTypes
+        .map(type => type.replace('image/', ''))
+        .join(',');
+      
+      reset({
+        path: upload.path,
+        maxSize: upload.maxSize,
+        allowedTypes: allowedTypesString
+      });
     } catch (error) {
       console.error('Failed to load settings:', error);
     }
@@ -39,16 +42,23 @@ export default function UploadSettingsPage() {
     setIsSaving(true);
     
     try {
-      // 保存设置到localStorage
-      localStorage.setItem('freeimages-upload-settings', JSON.stringify(data));
+      // 将字符串类型转换为数组
+      const allowedTypesArray = data.allowedTypes
+        .split(',')
+        .map(type => type.trim())
+        .filter(Boolean)
+        .map(type => `image/${type}`);
       
       // 更新配置
-      const config = localStorage.getItem('freeimages-config');
-      if (config) {
-        const configData = JSON.parse(config);
-        configData.uploadPath = data.uploadPath;
-        localStorage.setItem('freeimages-config', JSON.stringify(configData));
-      }
+      configManager.updateConfig({
+        storage: {
+          upload: {
+            path: data.path,
+            maxSize: data.maxSize,
+            allowedTypes: allowedTypesArray
+          }
+        }
+      });
       
       toast.success('设置已保存');
     } catch (error) {
@@ -97,13 +107,16 @@ export default function UploadSettingsPage() {
               </label>
               <input
                 type="text"
-                {...register('uploadPath', { required: true })}
+                {...register('path', { required: true })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                placeholder="例如: images/"
+                placeholder="例如: uploads/"
               />
-              {errors.uploadPath && (
+              {errors.path && (
                 <span className="text-red-500 text-xs mt-1">此字段为必填项</span>
               )}
+              <p className="text-xs text-gray-500 mt-1">
+                路径末尾需要有斜杠
+              </p>
             </div>
 
             <div>
@@ -112,11 +125,11 @@ export default function UploadSettingsPage() {
               </label>
               <input
                 type="number"
-                {...register('maxFileSize', { required: true, min: 1 })}
+                {...register('maxSize', { required: true, min: 1 })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 placeholder="10"
               />
-              {errors.maxFileSize && (
+              {errors.maxSize && (
                 <span className="text-red-500 text-xs mt-1">请输入有效的文件大小</span>
               )}
             </div>
@@ -127,11 +140,11 @@ export default function UploadSettingsPage() {
               </label>
               <input
                 type="text"
-                {...register('allowedFileTypes', { required: true })}
+                {...register('allowedTypes', { required: true })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 placeholder="jpg,jpeg,png,gif,webp"
               />
-              {errors.allowedFileTypes && (
+              {errors.allowedTypes && (
                 <span className="text-red-500 text-xs mt-1">此字段为必填项</span>
               )}
               <p className="text-xs text-gray-500 mt-1">

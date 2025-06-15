@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateUploadURL } from '@/lib/s3';
-import { Config, UploadResponse } from '@/types';
+import { UploadResponse } from '@/types';
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,7 +31,8 @@ export async function POST(request: NextRequest) {
       } as UploadResponse, { status: 400 });
     }
 
-    const config: Config = {
+    // 构建S3配置对象
+    const s3Config = {
       accountId,
       accessKeyId,
       secretAccessKey,
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
     const fullPath = `${uploadPath}${uniqueFilename}`;
     
     // 生成预签名URL
-    const signedUrl = await generateUploadURL(config, uniqueFilename, file.type);
+    const signedUrl = await generateUploadURL(s3Config, uniqueFilename, file.type);
     
     // 构建公共访问URL，使用publicDomain而不是桶名
     const publicUrl = `https://${publicDomain}/${fullPath}`;

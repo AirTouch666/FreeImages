@@ -3,26 +3,58 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { getConfig, saveConfig } from '@/lib/config';
-import { Config } from '@/types';
+import configManager from '@/config';
+import { ConfigType } from '@/config';
+
+interface CloudflareConfig {
+  accountId: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+  bucketName: string;
+  publicDomain: string;
+  uploadPath: string;
+}
 
 export default function ConfigForm() {
   const [isSaving, setIsSaving] = useState(false);
   
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<Config>();
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<CloudflareConfig>();
 
   // 加载保存的配置
   useEffect(() => {
-    const config = getConfig();
-    reset(config);
+    const config = configManager.getConfig();
+    const { cloudflare } = config.storage;
+    
+    // 准备表单数据
+    const formData = {
+      accountId: cloudflare.accountId,
+      accessKeyId: cloudflare.accessKeyId,
+      secretAccessKey: cloudflare.secretAccessKey,
+      bucketName: cloudflare.bucketName,
+      publicDomain: cloudflare.publicDomain,
+      uploadPath: config.storage.upload.path,
+    };
+    
+    reset(formData);
   }, [reset]);
 
-  const onSubmit = async (data: Config) => {
+  const onSubmit = async (data: CloudflareConfig) => {
     setIsSaving(true);
     
     try {
-      // 保存配置到localStorage
-      saveConfig(data);
+      // 提取上传路径
+      const { uploadPath, ...cloudflareData } = data;
+      
+      // 更新配置
+      configManager.updateConfig({
+        storage: {
+          cloudflare: cloudflareData,
+          upload: {
+            path: uploadPath
+          }
+        }
+      });
+      
       toast.success('配置已保存');
     } catch (error) {
       console.error('Save config error:', error);

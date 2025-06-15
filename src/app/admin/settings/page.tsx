@@ -5,35 +5,78 @@ import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import AdminLayout from '@/components/AdminLayout';
 import AuthGuard from '@/components/AuthGuard';
+import configManager from '@/config';
 
 interface BasicSettings {
-  appName: string;
-  domain: string;
+  title: string;
+  description: string;
+  theme: string;
+  url: string;
+  adminPassword: string;
+  imageDomains: string;
 }
 
 export default function BasicSettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { register, handleSubmit, formState: { errors }, reset } = useForm<BasicSettings>();
 
   // 加载保存的设置
   useEffect(() => {
-    try {
-      const savedSettings = localStorage.getItem('freeimages-basic-settings');
-      if (savedSettings) {
-        reset(JSON.parse(savedSettings));
+    const loadConfig = async () => {
+      try {
+        setIsLoading(true);
+        await configManager.init();
+        const config = configManager.getConfig();
+        const { site, security, images } = config.app;
+        
+        reset({
+          title: site.title,
+          description: site.description,
+          theme: site.theme,
+          url: site.url,
+          adminPassword: security.adminPassword,
+          imageDomains: images.domains.join(',')
+        });
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+        toast.error('加载配置失败');
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Failed to load settings:', error);
-    }
+    };
+    
+    loadConfig();
   }, [reset]);
 
   const onSubmit = async (data: BasicSettings) => {
     setIsSaving(true);
     
     try {
-      // 保存设置到localStorage
-      localStorage.setItem('freeimages-basic-settings', JSON.stringify(data));
-      toast.success('设置已保存');
+      // 处理图片域名
+      const imageDomains = data.imageDomains
+        ? data.imageDomains.split(',').map(domain => domain.trim()).filter(Boolean)
+        : [];
+      
+      // 更新配置
+      await configManager.updateConfig({
+        app: {
+          site: {
+            title: data.title,
+            description: data.description,
+            theme: data.theme,
+            url: data.url
+          },
+          security: {
+            adminPassword: data.adminPassword
+          },
+          images: {
+            domains: imageDomains
+          }
+        }
+      });
+      
+      toast.success('设置已保存，需要重启应用才能应用图片域名设置');
     } catch (error) {
       console.error('Save settings error:', error);
       toast.error('保存设置失败');
@@ -41,6 +84,18 @@ export default function BasicSettingsPage() {
       setIsSaving(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <AuthGuard>
+        <AdminLayout>
+          <div className="flex justify-center items-center p-10">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          </div>
+        </AdminLayout>
+      </AuthGuard>
+    );
+  }
 
   return (
     <AuthGuard>
@@ -80,26 +135,87 @@ export default function BasicSettingsPage() {
               </label>
               <input
                 type="text"
-                {...register('appName', { required: true })}
+                {...register('title', { required: true })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 placeholder="请输入应用名称"
               />
-              {errors.appName && (
+              {errors.title && (
                 <span className="text-red-500 text-xs mt-1">此字段为必填项</span>
               )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                <span className="text-red-500">*</span> 域名
+                应用描述
               </label>
               <input
                 type="text"
-                {...register('domain', { required: true })}
+                {...register('description')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                placeholder="请输入域名，例如：https://example.com"
+                placeholder="请输入应用描述"
               />
-              {errors.domain && (
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <span className="text-red-500">*</span> 应用URL
+              </label>
+              <input
+                type="text"
+                {...register('url', { required: true })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                placeholder="例如: https://example.com"
+              />
+              {errors.url && (
+                <span className="text-red-500 text-xs mt-1">此字段为必填项</span>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                应用的完整URL，包括协议（http://或https://）
+              </p>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                主题
+              </label>
+              <select
+                {...register('theme')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              >
+                <option value="light">浅色</option>
+                <option value="dark">深色</option>
+                <option value="system">跟随系统</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                图片域名
+              </label>
+              <input
+                type="text"
+                {...register('imageDomains')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                placeholder="例如: example.com,cdn.example.com"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                允许通过Next.js图片组件加载的域名，多个域名用逗号分隔。R2域名会自动添加。
+                <br />
+                <span className="text-amber-600">注意: 修改此设置需要重启应用才能生效。</span>
+              </p>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <span className="text-red-500">*</span> 管理员密码
+              </label>
+              <input
+                type="password"
+                {...register('adminPassword', { required: true })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                placeholder="请输入管理员密码"
+              />
+              {errors.adminPassword && (
                 <span className="text-red-500 text-xs mt-1">此字段为必填项</span>
               )}
             </div>

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import configManager from '@/config';
 
 export default function LoginForm() {
   const [password, setPassword] = useState('');
@@ -9,13 +10,22 @@ export default function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
+  useEffect(() => {
+    // 初始化配置管理器
+    configManager.init();
+  }, []);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
-    // 简单的密码验证，默认密码为 admin
-    if (password === 'admin') {
+    // 获取配置中的管理员密码
+    const config = configManager.getConfig();
+    const adminPassword = config.app.security.adminPassword;
+
+    // 验证密码
+    if (password === adminPassword) {
       // 设置登录状态
       localStorage.setItem('freeimages-auth', 'true');
       // 跳转到管理页面
@@ -53,6 +63,9 @@ export default function LoginForm() {
               placeholder="请输入管理密码"
               required
             />
+            <p className="text-xs text-gray-500 mt-1">
+              默认密码为: admin
+            </p>
           </div>
           
           <button

@@ -1,9 +1,18 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { Config } from '@/types';
+
+// S3配置接口
+export interface S3Config {
+  accountId: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+  bucketName: string;
+  uploadPath: string;
+  publicDomain: string;
+}
 
 // 创建S3客户端
-export const createS3Client = (config: Config) => {
+export const createS3Client = (config: S3Config) => {
   return new S3Client({
     region: 'auto',
     endpoint: `https://${config.accountId}.r2.cloudflarestorage.com`,
@@ -16,7 +25,7 @@ export const createS3Client = (config: Config) => {
 
 // 生成上传URL
 export const generateUploadURL = async (
-  config: Config,
+  config: S3Config,
   filename: string,
   contentType: string
 ): Promise<string> => {
@@ -44,6 +53,6 @@ export const generateUploadURL = async (
 };
 
 // 从URL中获取公共访问URL
-export const getPublicUrl = (config: Config, key: string): string => {
-  return `https://${config.bucketName}.r2.dev/${key}`;
+export const getPublicUrl = (config: S3Config, key: string): string => {
+  return `https://${config.publicDomain}/${key}`;
 }; 

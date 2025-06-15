@@ -5,26 +5,71 @@ import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import AdminLayout from '@/components/AdminLayout';
 import AuthGuard from '@/components/AuthGuard';
-import { Config } from '@/types';
-import { getConfig, saveConfig } from '@/lib/config';
+import configManager from '@/config';
+
+interface StorageFormData {
+  accountId: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+  bucketName: string;
+  publicDomain: string;
+  uploadPath: string;
+}
 
 export default function StorageSettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<Config>();
+  const [isLoading, setIsLoading] = useState(true);
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<StorageFormData>();
 
   // 加载保存的配置
   useEffect(() => {
-    const config = getConfig();
-    reset(config);
+    const loadConfig = async () => {
+      try {
+        setIsLoading(true);
+        await configManager.init();
+        const config = configManager.getConfig();
+        const { cloudflare } = config.storage;
+        
+        // 准备表单数据
+        const formData = {
+          accountId: cloudflare.accountId,
+          accessKeyId: cloudflare.accessKeyId,
+          secretAccessKey: cloudflare.secretAccessKey,
+          bucketName: cloudflare.bucketName,
+          publicDomain: cloudflare.publicDomain,
+          uploadPath: config.storage.upload.path,
+        };
+        
+        reset(formData);
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+        toast.error('加载配置失败');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadConfig();
   }, [reset]);
 
-  const onSubmit = async (data: Config) => {
+  const onSubmit = async (data: StorageFormData) => {
     setIsSaving(true);
     
     try {
-      // 保存配置到localStorage
-      saveConfig(data);
-      toast.success('配置已保存');
+      // 提取上传路径
+      const { uploadPath, ...cloudflareData } = data;
+      
+      // 更新配置
+      await configManager.updateConfig({
+        storage: {
+          cloudflare: cloudflareData,
+          upload: {
+            path: uploadPath
+          }
+        }
+      });
+      
+      toast.success('配置已保存，需要重启应用才能应用域名设置');
     } catch (error) {
       console.error('Save config error:', error);
       toast.error('保存配置失败');
@@ -32,6 +77,18 @@ export default function StorageSettingsPage() {
       setIsSaving(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <AuthGuard>
+        <AdminLayout>
+          <div className="flex justify-center items-center p-10">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          </div>
+        </AdminLayout>
+      </AuthGuard>
+    );
+  }
 
   return (
     <AuthGuard>
@@ -133,11 +190,31 @@ export default function StorageSettingsPage() {
                 type="text"
                 {...register('publicDomain', { required: true })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                placeholder="例如: pub-xxxxx.r2.dev"
+                placeholder="例如: pub-xxxxx.r2.dev 或 cdn.example.com"
               />
               {errors.publicDomain && (
                 <span className="text-red-500 text-xs mt-1">此字段为必填项</span>
               )}
+              <p className="text-xs text-gray-500 mt-1">
+                可以是R2默认公共域名（如 pub-xxxxx.r2.dev）或您自己的自定义域名（如 cdn.example.com）
+                <br />
+                <span className="text-amber-600">注意: 修改此设置需要重启应用才能生效。</span>
+              </p>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                上传路径
+              </label>
+              <input
+                type="text"
+                {...register('uploadPath')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                placeholder="uploads/"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                可选，默认为 "uploads/"，路径末尾需要有斜杠
+              </p>
             </div>
             
             <div>

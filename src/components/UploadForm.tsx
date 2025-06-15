@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import toast from 'react-hot-toast';
-import { getConfig, isConfigComplete } from '@/lib/config';
+import configManager from '@/config';
 import { UploadResponse } from '@/types';
 
 export default function UploadForm() {
@@ -77,8 +77,8 @@ export default function UploadForm() {
       return;
     }
 
-    const config = getConfig();
-    if (!isConfigComplete(config)) {
+    // 检查配置是否完整
+    if (!configManager.isConfigComplete()) {
       toast.error('请先在管理页面配置存储设置');
       return;
     }
@@ -90,6 +90,11 @@ export default function UploadForm() {
       // 只上传第一个文件（可以扩展为多文件上传）
       const file = files[0];
       
+      // 获取配置
+      const config = configManager.getConfig();
+      const { cloudflare } = config.storage;
+      const uploadPath = config.storage.upload.path;
+      
       // 第一步：获取预签名URL
       const formData = new FormData();
       formData.append('file', file);
@@ -98,12 +103,12 @@ export default function UploadForm() {
         method: 'POST',
         body: formData,
         headers: {
-          'x-account-id': config.accountId,
-          'x-access-key-id': config.accessKeyId,
-          'x-secret-access-key': config.secretAccessKey,
-          'x-bucket-name': config.bucketName,
-          'x-upload-path': config.uploadPath || 'uploads/',
-          'x-public-domain': config.publicDomain,
+          'x-account-id': cloudflare.accountId,
+          'x-access-key-id': cloudflare.accessKeyId,
+          'x-secret-access-key': cloudflare.secretAccessKey,
+          'x-bucket-name': cloudflare.bucketName,
+          'x-upload-path': uploadPath,
+          'x-public-domain': cloudflare.publicDomain,
         },
       });
 
