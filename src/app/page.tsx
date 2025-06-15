@@ -12,7 +12,7 @@ export default function Home() {
         </p>
       </div>
 
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-3xl">
         <UploadForm />
       </div>
 
@@ -22,7 +22,7 @@ export default function Home() {
           <div className="px-4 py-5 sm:p-6">
             <ol className="list-decimal list-inside space-y-3 text-gray-700">
               <li>
-                点击"选择图片"按钮，从您的设备中选择要上传的图片文件。
+                点击上传区域或将图片拖拽到上传区域。
               </li>
               <li>
                 点击"上传图片"按钮，等待上传完成。

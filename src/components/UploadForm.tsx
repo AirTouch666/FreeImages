@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { getConfig, isConfigComplete } from '@/lib/config';
 import { UploadResponse } from '@/types';
@@ -8,24 +8,71 @@ import { UploadResponse } from '@/types';
 export default function UploadForm() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dropAreaRef = useRef<HTMLDivElement>(null);
 
   // 处理文件选择
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      setSelectedFile(files[0]);
-    } else {
-      setSelectedFile(null);
+      const fileArray = Array.from(files);
+      await uploadFiles(fileArray);
     }
   };
 
-  // 处理表单提交
-  const handleSubmit = async (e: React.FormEvent) => {
+  // 处理拖拽事件
+  const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.currentTarget === dropAreaRef.current) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
     
-    if (!selectedFile) {
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      // 过滤出图片文件
+      const imageFiles = Array.from(files).filter(file => 
+        file.type.startsWith('image/')
+      );
+      
+      if (imageFiles.length === 0) {
+        toast.error('请上传图片文件');
+        return;
+      }
+      
+      await uploadFiles(imageFiles);
+    }
+  };
+
+  // 处理点击上传区域
+  const handleAreaClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  // 上传文件
+  const uploadFiles = async (files: File[]) => {
+    if (files.length === 0) {
       toast.error('请选择一个文件');
       return;
     }
@@ -40,9 +87,12 @@ export default function UploadForm() {
     setUploadedUrl(null);
 
     try {
+      // 只上传第一个文件（可以扩展为多文件上传）
+      const file = files[0];
+      
       // 第一步：获取预签名URL
       const formData = new FormData();
-      formData.append('file', selectedFile);
+      formData.append('file', file);
 
       const response = await fetch('/api/upload', {
         method: 'POST',
@@ -68,7 +118,7 @@ export default function UploadForm() {
       // 第二步：使用预签名URL直接上传到R2
       const uploadResponse = await fetch(result.signedUrl, {
         method: 'PUT',
-        body: selectedFile,
+        body: file,
         headers: {
           'Content-Type': result.contentType,
         },
@@ -83,7 +133,13 @@ export default function UploadForm() {
       // 上传成功
       setUploadedUrl(result.publicUrl);
       toast.success('上传成功!');
-      setSelectedFile(null);
+      
+      // 自动复制链接到剪贴板
+      navigator.clipboard.writeText(result.publicUrl)
+        .then(() => toast.success('链接已复制到剪贴板'))
+        .catch(() => toast.error('复制链接失败，请手动复制'));
+      
+      // 重置文件输入
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -96,39 +152,46 @@ export default function UploadForm() {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto mt-8">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            选择图片
-          </label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            ref={fileInputRef}
-            className="block w-full text-sm text-gray-500
-              file:mr-4 file:py-2 file:px-4
-              file:rounded-md file:border-0
-              file:text-sm file:font-semibold
-              file:bg-primary file:text-white
-              hover:file:bg-blue-600"
-          />
-          {selectedFile && (
-            <p className="text-sm text-green-600 mt-1">
-              已选择: {selectedFile.name}
-            </p>
-          )}
-        </div>
+    <div className="w-full max-w-2xl mx-auto mt-8">
+      <div 
+        ref={dropAreaRef}
+        className={`border-2 border-dashed rounded-lg p-8 flex flex-col items-center justify-center cursor-pointer transition-colors
+          ${isUploading ? 'opacity-50 pointer-events-none' : ''}
+          ${isDragging ? 'border-primary bg-blue-50' : 'border-gray-300 hover:border-gray-400'}`}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+        onClick={handleAreaClick}
+      >
+        {isUploading ? (
+          <div className="flex flex-col items-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
+            <p className="text-lg font-medium text-gray-700">上传中...</p>
+          </div>
+        ) : (
+          <>
+            <div className="text-primary mb-4">
+              <svg className="w-16 h-16 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h10a4 4 0 004-4v-5a4 4 0 00-4-4h-3l-1-2H7a4 4 0 00-4 4v7z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11v5m4-5v5m4-5v5" />
+              </svg>
+            </div>
+            <p className="text-lg font-medium text-gray-700">点击或拖拽图片到此区域上传</p>
+            <p className="text-sm text-gray-500 mt-2">支持单个或批量上传，严禁上传规则图片</p>
+          </>
+        )}
         
-        <button
-          type="submit"
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handleFileChange}
+          ref={fileInputRef}
+          className="hidden"
           disabled={isUploading}
-          className="btn btn-primary w-full"
-        >
-          {isUploading ? '上传中...' : '上传图片'}
-        </button>
-      </form>
+        />
+      </div>
 
       {uploadedUrl && (
         <div className="mt-6 p-4 border rounded-md">
