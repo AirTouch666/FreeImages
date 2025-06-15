@@ -21,9 +21,10 @@ export async function POST(request: NextRequest) {
     const secretAccessKey = request.headers.get('x-secret-access-key');
     const bucketName = request.headers.get('x-bucket-name');
     const uploadPath = request.headers.get('x-upload-path') || 'uploads/';
+    const publicDomain = request.headers.get('x-public-domain');
 
     // 检查必要的配置
-    if (!accountId || !accessKeyId || !secretAccessKey || !bucketName) {
+    if (!accountId || !accessKeyId || !secretAccessKey || !bucketName || !publicDomain) {
       return NextResponse.json({
         success: false,
         error: '缺少必要的配置信息',
@@ -36,6 +37,7 @@ export async function POST(request: NextRequest) {
       secretAccessKey,
       bucketName,
       uploadPath,
+      publicDomain,
     };
 
     // 生成唯一文件名
@@ -46,8 +48,8 @@ export async function POST(request: NextRequest) {
     // 生成预签名URL
     const signedUrl = await generateUploadURL(config, uniqueFilename, file.type);
     
-    // 构建公共访问URL
-    const publicUrl = `https://${bucketName}.r2.dev/${fullPath}`;
+    // 构建公共访问URL，使用publicDomain而不是桶名
+    const publicUrl = `https://${publicDomain}/${fullPath}`;
 
     // 返回预签名URL和公共URL给客户端
     return NextResponse.json({

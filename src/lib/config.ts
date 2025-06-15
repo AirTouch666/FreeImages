@@ -7,6 +7,7 @@ const DEFAULT_CONFIG: Config = {
   secretAccessKey: '',
   bucketName: '',
   uploadPath: 'uploads/',
+  publicDomain: '',
 };
 
 // 保存配置到localStorage
@@ -37,6 +38,7 @@ export const isConfigComplete = (config: Config): boolean => {
     config.accountId &&
     config.accessKeyId &&
     config.secretAccessKey &&
-    config.bucketName
+    config.bucketName &&
+    config.publicDomain
   );
 }; 

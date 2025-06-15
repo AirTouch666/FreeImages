@@ -53,6 +53,7 @@ export default function UploadForm() {
           'x-secret-access-key': config.secretAccessKey,
           'x-bucket-name': config.bucketName,
           'x-upload-path': config.uploadPath || 'uploads/',
+          'x-public-domain': config.publicDomain,
         },
       });
 

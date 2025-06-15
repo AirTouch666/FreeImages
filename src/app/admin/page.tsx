@@ -36,6 +36,9 @@ export default function AdminPage() {
                 <strong>桶名</strong>：您的R2存储桶名称。
               </li>
               <li>
+                <strong>公共访问域名</strong>：R2存储桶的公共访问域名，通常格式为"pub-xxxxx.r2.dev"。您可以从R2控制台的"公共访问"设置中找到。
+              </li>
+              <li>
                 <strong>文件路径</strong>：（可选）上传文件的存储路径前缀，默认为"uploads/"。
               </li>
             </ol>

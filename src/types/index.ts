@@ -5,6 +5,7 @@ export interface Config {
   secretAccessKey: string;
   bucketName: string;
   uploadPath: string;
+  publicDomain: string; // 公共访问域名
 }
 
 // 上传响应类型

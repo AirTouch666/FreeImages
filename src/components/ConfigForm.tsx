@@ -100,6 +100,24 @@ export default function ConfigForm() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
+            公共访问域名 (Public Domain)
+          </label>
+          <input
+            type="text"
+            {...register('publicDomain', { required: true })}
+            className="input"
+            placeholder="例如: pub-xxxxx.r2.dev"
+          />
+          {errors.publicDomain && (
+            <span className="text-red-500 text-xs mt-1">此字段为必填项</span>
+          )}
+          <p className="text-xs text-gray-500 mt-1">
+            R2存储桶的公共访问域名，通常格式为pub-xxxxx.r2.dev
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
             文件路径 (Upload Path)
           </label>
           <input
