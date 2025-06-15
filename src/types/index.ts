@@ -1,5 +1,6 @@
 // 配置类型
 export interface Config {
+  accountId: string;
   accessKeyId: string;
   secretAccessKey: string;
   bucketName: string;
@@ -11,6 +12,9 @@ export interface UploadResponse {
   success: boolean;
   url?: string;
   error?: string;
+  signedUrl?: string;
+  publicUrl?: string;
+  contentType?: string;
 }
 
 // 图片类型

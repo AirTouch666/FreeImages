@@ -37,6 +37,24 @@ export default function ConfigForm() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
+            Cloudflare 账户ID
+          </label>
+          <input
+            type="text"
+            {...register('accountId', { required: true })}
+            className="input"
+            placeholder="输入您的Cloudflare账户ID"
+          />
+          {errors.accountId && (
+            <span className="text-red-500 text-xs mt-1">此字段为必填项</span>
+          )}
+          <p className="text-xs text-gray-500 mt-1">
+            在Cloudflare R2控制台中可以找到
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
             应用密钥ID (Access Key ID)
           </label>
           <input

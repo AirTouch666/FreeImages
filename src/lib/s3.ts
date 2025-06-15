@@ -6,7 +6,7 @@ import { Config } from '@/types';
 export const createS3Client = (config: Config) => {
   return new S3Client({
     region: 'auto',
-    endpoint: `https://${config.accessKeyId}.r2.cloudflarestorage.com`,
+    endpoint: `https://${config.accountId}.r2.cloudflarestorage.com`,
     credentials: {
       accessKeyId: config.accessKeyId,
       secretAccessKey: config.secretAccessKey,
@@ -23,7 +23,7 @@ export const generateUploadURL = async (
   const client = createS3Client(config);
   
   // 生成唯一文件名
-  const key = `${config.uploadPath}${Date.now()}-${filename}`;
+  const key = `${config.uploadPath}${filename}`;
   
   const command = new PutObjectCommand({
     Bucket: config.bucketName,
@@ -32,8 +32,10 @@ export const generateUploadURL = async (
   });
 
   try {
-    // 生成预签名URL
-    const signedUrl = await getSignedUrl(client, command, { expiresIn: 3600 });
+    // 生成预签名URL，有效期1小时
+    const signedUrl = await getSignedUrl(client, command, { 
+      expiresIn: 3600,
+    });
     return signedUrl;
   } catch (error) {
     console.error('Error generating signed URL:', error);

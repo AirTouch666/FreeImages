@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['pub-xxxxx.r2.dev'], // 替换为您的R2域名
+    domains: ['https://pub-e2329b6c49f542019219e0653d87fc6d.r2.dev'], // 替换为您的R2域名
     formats: ['image/avif', 'image/webp'],
   },
   // 如果需要，可以添加环境变量

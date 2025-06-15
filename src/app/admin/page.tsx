@@ -24,6 +24,9 @@ export default function AdminPage() {
           <div className="px-4 py-5 sm:p-6">
             <ol className="list-decimal list-inside space-y-3 text-gray-700">
               <li>
+                <strong>Cloudflare 账户ID</strong>：您的Cloudflare账户ID，可以在Cloudflare R2控制台中找到。
+              </li>
+              <li>
                 <strong>应用密钥ID</strong>：您的Cloudflare R2 Access Key ID。
               </li>
               <li>

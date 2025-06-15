@@ -16,13 +16,14 @@ export async function POST(request: NextRequest) {
     }
 
     // 从请求头获取配置信息
+    const accountId = request.headers.get('x-account-id');
     const accessKeyId = request.headers.get('x-access-key-id');
     const secretAccessKey = request.headers.get('x-secret-access-key');
     const bucketName = request.headers.get('x-bucket-name');
     const uploadPath = request.headers.get('x-upload-path') || 'uploads/';
 
     // 检查必要的配置
-    if (!accessKeyId || !secretAccessKey || !bucketName) {
+    if (!accountId || !accessKeyId || !secretAccessKey || !bucketName) {
       return NextResponse.json({
         success: false,
         error: '缺少必要的配置信息',
@@ -30,6 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     const config: Config = {
+      accountId,
       accessKeyId,
       secretAccessKey,
       bucketName,
@@ -39,30 +41,21 @@ export async function POST(request: NextRequest) {
     // 生成唯一文件名
     const fileExtension = file.name.split('.').pop() || '';
     const uniqueFilename = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExtension}`;
+    const fullPath = `${uploadPath}${uniqueFilename}`;
     
     // 生成预签名URL
     const signedUrl = await generateUploadURL(config, uniqueFilename, file.type);
     
-    // 上传文件到预签名URL
-    const uploadResponse = await fetch(signedUrl, {
-      method: 'PUT',
-      body: file,
-      headers: {
-        'Content-Type': file.type,
-      },
-    });
-
-    if (!uploadResponse.ok) {
-      throw new Error(`上传失败: ${uploadResponse.statusText}`);
-    }
-
     // 构建公共访问URL
-    const publicUrl = `https://${bucketName}.r2.dev/${uploadPath}${uniqueFilename}`;
+    const publicUrl = `https://${bucketName}.r2.dev/${fullPath}`;
 
+    // 返回预签名URL和公共URL给客户端
     return NextResponse.json({
       success: true,
-      url: publicUrl,
-    } as UploadResponse);
+      signedUrl,
+      publicUrl,
+      contentType: file.type,
+    });
   } catch (error: any) {
     console.error('Upload error:', error);
     return NextResponse.json({

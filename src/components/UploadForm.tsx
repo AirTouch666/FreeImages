@@ -40,7 +40,7 @@ export default function UploadForm() {
     setUploadedUrl(null);
 
     try {
-      // 调用上传API
+      // 第一步：获取预签名URL
       const formData = new FormData();
       formData.append('file', selectedFile);
 
@@ -48,6 +48,7 @@ export default function UploadForm() {
         method: 'POST',
         body: formData,
         headers: {
+          'x-account-id': config.accountId,
           'x-access-key-id': config.accessKeyId,
           'x-secret-access-key': config.secretAccessKey,
           'x-bucket-name': config.bucketName,
@@ -55,21 +56,39 @@ export default function UploadForm() {
         },
       });
 
-      const result: UploadResponse = await response.json();
+      const result = await response.json();
 
-      if (result.success && result.url) {
-        setUploadedUrl(result.url);
-        toast.success('上传成功!');
-        setSelectedFile(null);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
-      } else {
-        toast.error(result.error || '上传失败');
+      if (!result.success) {
+        throw new Error(result.error || '获取上传URL失败');
       }
-    } catch (error) {
+
+      console.log('获取预签名URL成功:', result.signedUrl);
+
+      // 第二步：使用预签名URL直接上传到R2
+      const uploadResponse = await fetch(result.signedUrl, {
+        method: 'PUT',
+        body: selectedFile,
+        headers: {
+          'Content-Type': result.contentType,
+        },
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error(`上传失败: ${uploadResponse.statusText}`);
+      }
+
+      console.log('上传到R2成功');
+
+      // 上传成功
+      setUploadedUrl(result.publicUrl);
+      toast.success('上传成功!');
+      setSelectedFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error: any) {
       console.error('Upload error:', error);
-      toast.error('上传过程中发生错误');
+      toast.error(error.message || '上传过程中发生错误');
     } finally {
       setIsUploading(false);
     }

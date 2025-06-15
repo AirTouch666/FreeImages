@@ -2,6 +2,7 @@ import { Config } from '@/types';
 
 // 默认配置
 const DEFAULT_CONFIG: Config = {
+  accountId: '',
   accessKeyId: '',
   secretAccessKey: '',
   bucketName: '',
@@ -33,6 +34,7 @@ export const getConfig = (): Config => {
 // 检查配置是否完整
 export const isConfigComplete = (config: Config): boolean => {
   return !!(
+    config.accountId &&
     config.accessKeyId &&
     config.secretAccessKey &&
     config.bucketName
