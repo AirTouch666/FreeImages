@@ -50,7 +50,9 @@ export default function ConfigForm() {
         storage: {
           cloudflare: cloudflareData,
           upload: {
-            path: uploadPath
+            path: uploadPath,
+            maxSize: 10, // 默认最大上传大小10MB
+            allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'], // 默认允许的图片类型
           }
         }
       });
@@ -102,13 +104,13 @@ export default function ConfigForm() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            应用密钥 (Secret Access Key)
+          机密访问密钥 (Secret Access Key)
           </label>
           <input
             type="password"
             {...register('secretAccessKey', { required: true })}
             className="input"
-            placeholder="输入您的R2访问密钥"
+            placeholder="输入您的R2机密访问密钥"
           />
           {errors.secretAccessKey && (
             <span className="text-red-500 text-xs mt-1">此字段为必填项</span>

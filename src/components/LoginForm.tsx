@@ -74,9 +74,6 @@ export default function LoginForm() {
               placeholder="请输入管理密码"
               required
             />
-            <p className="text-xs text-gray-500 mt-1">
-              默认密码为: admin
-            </p>
           </div>
           
           <button

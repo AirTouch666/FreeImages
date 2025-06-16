@@ -7,7 +7,7 @@ import Header from '@/components/Header';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'FreeImages - 免费图床',
+  title: 'FreeImages',
   description: '简单易用的图片上传与分享服务',
 };
 

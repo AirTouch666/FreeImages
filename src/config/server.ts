@@ -65,7 +65,7 @@ export class ServerConfigManager {
    */
   static getImageDomains(): string[] {
     const config = ServerConfigManager.getConfig();
-    const domains = [...(config.app.images.domains || [])];
+    const domains: string[] = [...(config.app.images.domains || [])];
     
     // 添加R2域名（如果存在）
     if (config.storage.cloudflare.publicDomain) {
@@ -92,19 +92,23 @@ export class ServerConfigManager {
    * @param target 目标对象
    * @param source 源对象
    */
-  private static deepMerge<T>(target: T, source: Partial<T>): T {
-    const output = { ...target };
+  private static deepMerge<T extends Record<string, any>>(target: T, source: Partial<T>): T {
+    const output = { ...target } as T;
     
     if (ServerConfigManager.isObject(target) && ServerConfigManager.isObject(source)) {
       Object.keys(source).forEach(key => {
-        if (ServerConfigManager.isObject(source[key])) {
-          if (!(key in target)) {
-            Object.assign(output, { [key]: source[key] });
+        const k = key as keyof T;
+        if (ServerConfigManager.isObject(source[k])) {
+          if (!(k in target)) {
+            Object.assign(output, { [k]: source[k] });
           } else {
-            output[key] = ServerConfigManager.deepMerge(target[key], source[key]);
+            output[k] = ServerConfigManager.deepMerge(
+              target[k] as Record<string, any>, 
+              source[k] as Record<string, any>
+            ) as any;
           }
         } else {
-          Object.assign(output, { [key]: source[key] });
+          Object.assign(output, { [k]: source[k] });
         }
       });
     }
@@ -115,7 +119,7 @@ export class ServerConfigManager {
   /**
    * 检查值是否为对象
    */
-  private static isObject(item: any): boolean {
+  private static isObject(item: any): item is Record<string, any> {
     return item && typeof item === 'object' && !Array.isArray(item);
   }
 }
