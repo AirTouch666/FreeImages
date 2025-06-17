@@ -71,7 +71,8 @@ export default function BasicSettingsPage() {
             adminPassword: data.adminPassword
           },
           images: {
-            domains: imageDomains
+            domains: imageDomains,
+            formats: ['image/avif', 'image/webp']
           }
         }
       });

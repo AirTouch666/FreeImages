@@ -41,7 +41,7 @@ export const appConfig = {
 
   // 图片优化设置
   images: {
-    domains: [], // 允许的图片域名，会自动添加R2域名
+    domains: [] as string[], // 允许的图片域名，会自动添加R2域名
     formats: ['image/avif', 'image/webp'], // 支持的图片格式
   }
 };

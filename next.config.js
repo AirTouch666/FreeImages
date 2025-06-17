@@ -73,13 +73,19 @@ const getConfig = () => {
 // 获取图片域名
 const getImageDomains = (config) => {
   try {
-    const domains = [...(config.app.images.domains || [])];
+    // 确保domains是数组
+    const configDomains = Array.isArray(config.app?.images?.domains) 
+      ? config.app.images.domains 
+      : [];
+    
+    // 创建新的字符串数组
+    const domains = [...configDomains];
     
     // 添加R2域名（如果存在）
-    if (config.storage.cloudflare.publicDomain) {
+    if (config.storage?.cloudflare?.publicDomain) {
       // 移除可能的协议前缀
       const domain = config.storage.cloudflare.publicDomain.replace(/^https?:\/\//, '');
-      if (!domains.includes(domain)) {
+      if (domain && !domains.includes(domain)) {
         domains.push(domain);
       }
     }

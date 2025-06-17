@@ -98,14 +98,44 @@ class ClientConfigManager {
    * 更新存储配置
    */
   public updateStorageConfig(storageConfig: Partial<ConfigType['storage']>): Promise<void> {
-    return this.updateConfig({ storage: storageConfig });
+    // 获取当前配置
+    const currentConfig = this.getConfig();
+    // 合并配置，确保完整性
+    const mergedStorage = {
+      cloudflare: {
+        ...currentConfig.storage.cloudflare,
+        ...(storageConfig.cloudflare || {})
+      },
+      upload: {
+        ...currentConfig.storage.upload,
+        ...(storageConfig.upload || {})
+      }
+    };
+    return this.updateConfig({ storage: mergedStorage });
   }
 
   /**
    * 更新应用配置
    */
   public updateAppConfig(appConfig: Partial<ConfigType['app']>): Promise<void> {
-    return this.updateConfig({ app: appConfig });
+    // 获取当前配置
+    const currentConfig = this.getConfig();
+    // 合并配置，确保完整性
+    const mergedApp = {
+      site: {
+        ...currentConfig.app.site,
+        ...(appConfig.site || {})
+      },
+      security: {
+        ...currentConfig.app.security,
+        ...(appConfig.security || {})
+      },
+      images: {
+        ...currentConfig.app.images,
+        ...(appConfig.images || {})
+      }
+    };
+    return this.updateConfig({ app: mergedApp });
   }
 
   /**

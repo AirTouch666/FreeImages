@@ -64,7 +64,9 @@ export default function StorageSettingsPage() {
         storage: {
           cloudflare: cloudflareData,
           upload: {
-            path: uploadPath
+            path: uploadPath,
+            maxSize: 10, // 默认最大上传大小10MB
+            allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'], // 默认允许的图片类型
           }
         }
       });

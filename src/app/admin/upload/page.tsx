@@ -49,9 +49,13 @@ export default function UploadSettingsPage() {
         .filter(Boolean)
         .map(type => `image/${type}`);
       
+      // 获取当前配置
+      const currentConfig = configManager.getConfig();
+      
       // 更新配置
       configManager.updateConfig({
         storage: {
+          cloudflare: currentConfig.storage.cloudflare, // 保留现有的cloudflare配置
           upload: {
             path: data.path,
             maxSize: data.maxSize,
